@@ -6,7 +6,7 @@ const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
-
+const updateBalances = require("./updateBalances");
 // MiddleWare
 app.use(
   cors({
@@ -20,6 +20,22 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+
+// Calculate the time until the next 12:00 AM
+const now = new Date();
+const msUntilNextDay =
+  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0) -
+  now;
+
+// Set a timeout to run the function at 12:00 AM
+setTimeout(() => {
+  // Set an interval to run the function every 24 hours
+  setInterval(() => {
+    // Run the function now
+    updateBalances();
+  }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
+}, msUntilNextDay);
 
 // varify token
 const variyfiToken = (req, res, next) => {
