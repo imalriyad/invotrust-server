@@ -10,32 +10,22 @@ const updateBalances = require("./updateBalances");
 // MiddleWare
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "https://invotrust-7c95c.web.app",
-      "https://invotrust-7c95c.firebaseapp.com",
-    ],
+    origin: ["http://localhost:5173", "https://invotrusts.com"],
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
 
-
-// Calculate the time until the next 12:00 AM
-const now = new Date();
-const msUntilNextDay =
-  new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0) -
-  now;
-
-// Set a timeout to run the function at 12:00 AM
+// Set a timeout to run the function at the next minute
 setTimeout(() => {
-  // Set an interval to run the function every 24 hours
+  // Run the function every minute
   setInterval(() => {
     // Run the function now
     updateBalances();
-  }, 24 * 60 * 60 * 1000); // 24 hours in milliseconds
-}, msUntilNextDay);
+    
+  }, 60 * 1000); // 1 minute in milliseconds
+});
 
 // varify token
 const variyfiToken = (req, res, next) => {
@@ -195,6 +185,7 @@ async function run() {
       try {
         const user = req.query?.email;
         const cookeEmail = req.user?.email;
+        console.log('query mail',user,'cookie mail',cookeEmail);
         if (user !== cookeEmail && cookeEmail !== process.env.ADMIN_MAIL) {
           return res.status(403).send({ message: "Forbidden" });
         }
@@ -299,11 +290,11 @@ async function run() {
         .send({ status: true });
     });
 
-    // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // // Send a ping to confirm a successful connection
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // // Ensures that the client will close when you finish/error
     // await client.close();

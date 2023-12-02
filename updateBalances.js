@@ -12,8 +12,8 @@ const client = new MongoClient(mongoURI, {
 
 async function updateBalances() {
   try {
-    await client.connect();
-    console.log("Connected to MongoDB");
+    // await client.connect();
+    // console.log("Connected to MongoDB");
 
     const database = client.db("InvoTrustDb");
     const userCollection = database.collection("users");
@@ -51,8 +51,8 @@ async function updateBalances() {
 
     console.log("Balances updated successfully");
   } finally {
-    await client.close();
-    console.log("Disconnected from MongoDB");
+    // await client.close();
+    // console.log("Disconnected from MongoDB");
   }
 }
 
