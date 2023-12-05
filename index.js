@@ -4,28 +4,69 @@ var jwt = require("jsonwebtoken");
 require("dotenv").config();
 const cookieParser = require("cookie-parser");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const uuid = require("uuid");
 const app = express();
 const port = process.env.PORT || 5000;
 const updateBalances = require("./updateBalances");
 // MiddleWare
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://invotrusts.com"],
+    origin: [
+      "http://localhost:5173",
+      "https://invotrusts.com",
+      "http://localhost:5177",
+    ],
     credentials: true,
   })
 );
 app.use(express.json());
 app.use(cookieParser());
 
-// Set a timeout to run the function at the next minute
-setTimeout(() => {
-  // Run the function every minute
-  setInterval(() => {
-    // Run the function now
-    updateBalances();
-    
-  }, 60 * 1000); // 1 minute in milliseconds
-});
+// // Set a timeout to run the function at the next minute
+
+// setTimeout(() => {
+//   // Run the function every minute
+//   setInterval(() => {
+//     // Run the function now
+//     updateBalances();
+
+//   }, 60 * 1000); // 1 minute in milliseconds
+// });
+
+// Function to calculate the time until the next specified hour (in 24-hour format)
+// for 24 hours
+// function timeUntilNextHour(targetHour) {
+//   const now = new Date();
+//   const targetTime = new Date(now);
+//   targetTime.setHours(targetHour, 0, 0, 0);
+
+//   if (now > targetTime) {
+//     // If the target time has already passed for today, set it for tomorrow
+//     targetTime.setDate(targetTime.getDate() + 1);
+//   }
+
+//   return targetTime - now;
+// }
+
+// Set a timeout to run the function at 12:00 AM
+// setTimeout(() => {
+//   // Run the function every day at 12:00 AM
+//   setInterval(() => {
+//     // Run the function now
+//     updateBalances();
+//     // Calculate the time until the next day at 12:00 AM
+//     const timeUntilNextDay = timeUntilNextHour(0);
+
+//     // Set the interval to 24 hours
+//     const interval = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+//     // Reset the interval based on the time until the next day
+//     setTimeout(() => {
+//       // Run the function again after 24 hours
+//       setInterval(updateBalances, interval);
+//     }, timeUntilNextDay);
+//   }, timeUntilNextHour(0)); // Initial delay until the next 12:00 AM
+// });
 
 // varify token
 const variyfiToken = (req, res, next) => {
@@ -61,6 +102,66 @@ async function run() {
     const depositCollection = database.collection("deposit");
     const withdrawCollection = database.collection("withdraw");
     const blogsCollection = database.collection("blogs");
+
+    app.post("/api/v1/signup/:inputReferralCode?", async (req, res) => {
+      await client.connect();
+
+      // Generate a unique referral code using uuid
+      const referralCode = uuid.v4().substring(0, 8);
+      console.log(req.params.inputReferralCode);
+
+      // Check if a referral code is provided in the request
+      const referringUser = req.params.inputReferralCode
+        ? await userCollection.findOne({
+            refferCode: req.params.inputReferralCode,
+          })
+        : null;
+
+      // Create a new user document
+      const newUser = {
+        name: req.body.name,
+        email: req.body.email,
+        number: req.body.number,
+        password:req.body.password,
+        refferCode: referralCode,
+        totalBalance: 5,
+        totalProfit: 0,
+        totalSpent: 0,
+        totalReferral: 0,
+      };
+
+      // Save the user to the database
+      await userCollection.insertOne(newUser);
+
+      // If a referring user is found, increment their totalReferral and totalBalance
+      if (referringUser) {
+        await userCollection.updateOne(
+          { _id: referringUser._id },
+          { $inc: { totalReferral: 1, totalBalance: 10 } }
+        );
+      }
+
+      res.status(201).json({
+        message: "User created successfully",
+        referralCode: referralCode,
+        referringUserId: referringUser ? referringUser._id : null,
+      });
+    });
+
+    // chnage password
+    app.patch("/api/v1/change-password/:email", async (req, res) => {
+      const queryemail = req.params.email;
+      const query = { email: queryemail };
+      const info = req.body;
+      console.log(info);
+      const updatefeild = {
+        $set: {
+          password: info.newPassword,
+        },
+      };
+      const result = await userCollection.updateOne(query, updatefeild);
+      res.send(result);
+    });
 
     // api for get withdraw record
     app.get("/api/v1/get-withdraw-request", async (req, res) => {
@@ -132,7 +233,7 @@ async function run() {
             name: 1,
             email: 1,
             number: 1,
-            refferLink: 1,
+            refferCode: 1,
             _id: 1,
             totalBalance: 1,
             totalProfit: 1,
@@ -185,7 +286,7 @@ async function run() {
       try {
         const user = req.query?.email;
         const cookeEmail = req.user?.email;
-        console.log('query mail',user,'cookie mail',cookeEmail);
+        console.log("query mail", user, "cookie mail", cookeEmail);
         if (user !== cookeEmail && cookeEmail !== process.env.ADMIN_MAIL) {
           return res.status(403).send({ message: "Forbidden" });
         }
@@ -198,7 +299,7 @@ async function run() {
             name: 1,
             email: 1,
             number: 1,
-            refferLink: 1,
+            refferCode: 1,
             _id: 1,
             totalBalance: 1,
             totalProfit: 1,
@@ -247,11 +348,11 @@ async function run() {
     });
 
     // api for storing user data in database
-    app.post("/api/v1/create-user", async (req, res) => {
-      const user = req.body;
-      const result = await userCollection.insertOne(user);
-      res.send(result);
-    });
+    // app.post("/api/v1/create-user", async (req, res) => {
+    //   const user = req.body;
+    //   const result = await userCollection.insertOne(user);
+    //   res.send(result);
+    // });
 
     // api for blog
     app.get("/api/v1/blogs", async (req, res) => {
