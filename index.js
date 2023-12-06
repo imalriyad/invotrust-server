@@ -7,7 +7,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uuid = require("uuid");
 const app = express();
 const port = process.env.PORT || 5000;
-const updateBalances = require("./updateBalances");
+// const updateBalances = require("./updateBalances");
 // MiddleWare
 app.use(
   cors({
@@ -71,6 +71,7 @@ app.use(cookieParser());
 // varify token
 const variyfiToken = (req, res, next) => {
   const token = req.cookies.token;
+  console.log(token);
   if (!token) {
     return res.status(401).send({ message: "Unauthorized" });
   }
@@ -122,7 +123,7 @@ async function run() {
         name: req.body.name,
         email: req.body.email,
         number: req.body.number,
-        password:req.body.password,
+        password: req.body.password,
         refferCode: referralCode,
         totalBalance: 5,
         totalProfit: 0,
@@ -137,7 +138,7 @@ async function run() {
       if (referringUser) {
         await userCollection.updateOne(
           { _id: referringUser._id },
-          { $inc: { totalReferral: 1, totalBalance: 10 } }
+          { $inc: { totalReferral: 1, totalBalance: 1 } }
         );
       }
 
@@ -164,10 +165,23 @@ async function run() {
     });
 
     // api for get withdraw record
-    app.get("/api/v1/get-withdraw-request", async (req, res) => {
+    app.get("/api/v1/get-withdraw-request", variyfiToken, async (req, res) => {
       const result = await withdrawCollection.find().toArray();
       res.send(result);
     });
+
+    // api for get withdraw record for each user
+    app.get(
+      "/api/v1/latest-withdraw-request/:email",
+      variyfiToken,
+      async (req, res) => {
+        const queryemail = req.params.email;
+        console.log(queryemail);
+        const query = { email: queryemail };
+        const result = await withdrawCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
 
     // api for confirm withdraw
     app.patch("/api/v1/confirm-withdraw-request/:id", async (req, res) => {
@@ -262,8 +276,20 @@ async function run() {
       res.send(result);
     });
 
+    // api for get deposit record by each user
+    app.get(
+      "/api/v1/latest-deposit-request/:email",
+      variyfiToken,
+      async (req, res) => {
+        const queryemail = req.params.email;
+        const query = { email: queryemail };
+        const result = await depositCollection.find(query).toArray();
+        res.send(result);
+      }
+    );
+
     // api for get deposit record
-    app.get("/api/v1/get-deposit-request", async (req, res) => {
+    app.get("/api/v1/get-deposit-request", variyfiToken, async (req, res) => {
       const result = await depositCollection.find().toArray();
       res.send(result);
     });
