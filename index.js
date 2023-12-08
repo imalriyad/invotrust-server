@@ -105,8 +105,6 @@ async function run() {
     const blogsCollection = database.collection("blogs");
 
     app.post("/api/v1/signup/:inputReferralCode?", async (req, res) => {
-      await client.connect();
-
       // Generate a unique referral code using uuid
       const referralCode = uuid.v4().substring(0, 8);
       console.log(req.params.inputReferralCode);
@@ -125,20 +123,21 @@ async function run() {
         number: req.body.number,
         password: req.body.password,
         refferCode: referralCode,
-        totalBalance: 5,
+        totalBalance: 1,
         totalProfit: 0,
         totalSpent: 0,
         totalReferral: 0,
+        referrerId: referringUser ? referringUser._id : null,
       };
 
       // Save the user to the database
-      await userCollection.insertOne(newUser);
+      const result = await userCollection.insertOne(newUser);
 
-      // If a referring user is found, increment their totalReferral and totalBalance
+      // If a referring user is found, increment their totalReferral
       if (referringUser) {
         await userCollection.updateOne(
           { _id: referringUser._id },
-          { $inc: { totalReferral: 1, totalBalance: 1 } }
+          { $inc: { totalReferral: 1 } }
         );
       }
 
@@ -146,6 +145,35 @@ async function run() {
         message: "User created successfully",
         referralCode: referralCode,
         referringUserId: referringUser ? referringUser._id : null,
+        userId: result.insertedId,
+      });
+    });
+
+    app.post("/api/v1/deposit/:userId", async (req, res) => {
+      const userId = req.params.userId;
+
+      // Check if the user exists
+      const user = await userCollection.findOne({
+        _id: new ObjectId(userId),
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          message: "User not found",
+        });
+      }
+
+      console.log('totoal spent',user.totalSpent,'refferdId', user.referrerId);
+      // If the user has a referrer and it's their first deposit, update their totalBalance by adding 1
+      if (user.referrerId && user.totalSpent === 0) {
+        await userCollection.updateOne(
+          { _id: new ObjectId(user.referrerId) },
+          { $inc: { totalBalance: 1 } }
+        );
+      }
+
+      res.status(200).json({
+        message: "Deposit successful",
       });
     });
 
