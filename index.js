@@ -163,7 +163,12 @@ async function run() {
         });
       }
 
-      console.log('totoal spent',user.totalSpent,'refferdId', user.referrerId);
+      console.log(
+        "totoal spent",
+        user.totalSpent,
+        "refferdId",
+        user.referrerId
+      );
       // If the user has a referrer and it's their first deposit, update their totalBalance by adding 1
       if (user.referrerId && user.totalSpent === 0) {
         await userCollection.updateOne(
@@ -192,12 +197,6 @@ async function run() {
       res.send(result);
     });
 
-    // api for get withdraw record
-    app.get("/api/v1/get-withdraw-request", variyfiToken, async (req, res) => {
-      const result = await withdrawCollection.find().toArray();
-      res.send(result);
-    });
-
     // api for get withdraw record for each user
     app.get(
       "/api/v1/latest-withdraw-request/:email",
@@ -206,10 +205,23 @@ async function run() {
         const queryemail = req.params.email;
         console.log(queryemail);
         const query = { email: queryemail };
-        const result = await withdrawCollection.find(query).toArray();
+        const result = await withdrawCollection.find(query).limit(5).sort({ DateTime: -1 }).toArray();
         res.send(result);
       }
     );
+    
+// api for get deposit record by each user
+app.get(
+  "/api/v1/latest-deposit-request/:email",
+  variyfiToken,
+  async (req, res) => {
+    const queryemail = req.params.email;
+    const query = { email: queryemail };
+    const result = await depositCollection.find(query).limit(5).sort({ DateTime: -1 }).toArray();
+    res.send(result);
+  }
+);
+
 
     // api for confirm withdraw
     app.patch("/api/v1/confirm-withdraw-request/:id", async (req, res) => {
@@ -304,35 +316,31 @@ async function run() {
       res.send(result);
     });
 
-    // api for get deposit record by each user
-    app.get(
-      "/api/v1/latest-deposit-request/:email",
-      variyfiToken,
-      async (req, res) => {
-        const queryemail = req.params.email;
-        const query = { email: queryemail };
-        const result = await depositCollection.find(query).toArray();
-        res.send(result);
-      }
-    );
+    
+
+
+    // api for get withdraw record
+    app.get("/api/v1/get-withdraw-request", variyfiToken, async (req, res) => {
+      const result = await withdrawCollection.find({})
+      .sort({ DateTime: -1 }) 
+      .toArray();
+      res.send(result);
+    });
 
     // api for get deposit record
-    app.get("/api/v1/get-deposit-request", variyfiToken, async (req, res) => {
-      const result = await depositCollection.find().toArray();
+    app.get("/api/v1/get-deposit-request", async (req, res) => {
+      const result = await depositCollection.find({})
+      .sort({ DateTime: -1 }) 
+      .toArray();
       res.send(result);
     });
+  
+    
 
-    // api for post Withdraw request
-    app.post("/api/v1/create-withdraw", async (req, res) => {
-      const newWithdraw = req.body;
-      const result = await withdrawCollection.insertOne(newWithdraw);
-      res.send(result);
-    });
-    // api for post deposit request
-    app.post("/api/v1/create-deposit", async (req, res) => {
-      const newDeposit = req.body;
-      const result = await depositCollection.insertOne(newDeposit);
-      res.send(result);
+    // get total user
+    app.get("/api/v1/get-total-user", async (req, res) => {
+      const totalUser = await userCollection.estimatedDocumentCount();
+      res.send({ totalUser });
     });
 
     //  Api for getting userInfo
@@ -382,11 +390,7 @@ async function run() {
       res.send(result);
     });
 
-    // api for get deposit record
-    app.get("/api/v1/get-deposit-request", async (req, res) => {
-      const result = await depositCollection.find().toArray();
-      res.send(result);
-    });
+    
 
     // api for post Withdraw request
     app.post("/api/v1/create-withdraw", async (req, res) => {
@@ -397,16 +401,10 @@ async function run() {
     // api for post deposit request
     app.post("/api/v1/create-deposit", async (req, res) => {
       const newDeposit = req.body;
+      console.log(newDeposit);
       const result = await depositCollection.insertOne(newDeposit);
       res.send(result);
     });
-
-    // api for storing user data in database
-    // app.post("/api/v1/create-user", async (req, res) => {
-    //   const user = req.body;
-    //   const result = await userCollection.insertOne(user);
-    //   res.send(result);
-    // });
 
     // api for blog
     app.get("/api/v1/blogs", async (req, res) => {
