@@ -14,7 +14,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://invotrusts.com",
-      "http://localhost:5177",
+      "https://invo-trust.vercel.app",
     ],
     credentials: true,
   })
