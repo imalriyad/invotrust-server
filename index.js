@@ -13,7 +13,6 @@ app.use(
   cors({
     origin: [
       "http://localhost:5173",
-      "https://invotrusts.com",
       "https://invo-trust.vercel.app",
     ],
     credentials: true,
